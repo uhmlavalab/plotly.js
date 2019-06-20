@@ -95,7 +95,8 @@ module.exports = function calc(gd, trace) {
     if(opts.fill && !scene.fill2d) scene.fill2d = true;
     if(opts.marker && !scene.scatter2d) scene.scatter2d = true;
     if(opts.line && !scene.line2d) scene.line2d = true;
-    if((opts.errorX || opts.errorY) && !scene.error2d) scene.error2d = true;
+    if(opts.errorX && !scene.error2dx) scene.error2dx = true;
+    if(opts.errorY && !scene.error2dy) scene.error2dy = true;
     if(opts.text && !scene.glText) scene.glText = true;
 
     // FIXME: organize it in a more appropriate manner, probably in sceneOptions

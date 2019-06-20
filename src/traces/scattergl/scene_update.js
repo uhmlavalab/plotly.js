@@ -39,7 +39,8 @@ module.exports = function sceneUpdate(gd, subplot) {
     var initOpts = {
         fill2d: false,
         scatter2d: false,
-        error2d: false,
+        error2dx: false,
+        error2dy: false,
         line2d: false,
         glText: false,
         select2d: false
@@ -61,7 +62,8 @@ module.exports = function sceneUpdate(gd, subplot) {
             if(scene.fill2d) scene.fill2d.update(opts);
             if(scene.scatter2d) scene.scatter2d.update(opts);
             if(scene.line2d) scene.line2d.update(opts);
-            if(scene.error2d) scene.error2d.update(opts.concat(opts));
+            if(scene.error2dx) scene.error2dx.update(opts);
+            if(scene.error2dy) scene.error2dy.update(opts);
             if(scene.select2d) scene.select2d.update(opts);
             if(scene.glText) {
                 for(var i = 0; i < scene.count; i++) {
@@ -74,7 +76,8 @@ module.exports = function sceneUpdate(gd, subplot) {
         scene.draw = function draw() {
             var count = scene.count;
             var fill2d = scene.fill2d;
-            var error2d = scene.error2d;
+            var error2dx = scene.error2dx;
+            var error2dy = scene.error2dy;
             var line2d = scene.line2d;
             var scatter2d = scene.scatter2d;
             var glText = scene.glText;
@@ -89,9 +92,11 @@ module.exports = function sceneUpdate(gd, subplot) {
                 if(line2d && scene.lineOptions[i]) {
                     line2d.draw(i);
                 }
-                if(error2d) {
-                    if(scene.errorXOptions[i]) error2d.draw(i);
-                    if(scene.errorYOptions[i]) error2d.draw(i + count);
+                if(error2dx) {
+                    if(scene.errorXOptions[i]) error2dx.draw(i);
+                }
+                if(error2dy) {
+                    if(scene.errorYOptions[i]) error2dy.draw(i);
                 }
                 if(scatter2d && scene.markerOptions[i]) {
                     if(unselectBatch[i].length) {
@@ -118,7 +123,8 @@ module.exports = function sceneUpdate(gd, subplot) {
         scene.destroy = function destroy() {
             if(scene.fill2d && scene.fill2d.destroy) scene.fill2d.destroy();
             if(scene.scatter2d && scene.scatter2d.destroy) scene.scatter2d.destroy();
-            if(scene.error2d && scene.error2d.destroy) scene.error2d.destroy();
+            if(scene.error2dx && scene.error2dx.destroy) scene.error2dx.destroy();
+            if(scene.error2dy && scene.error2dy.destroy) scene.error2dy.destroy();
             if(scene.line2d && scene.line2d.destroy) scene.line2d.destroy();
             if(scene.select2d && scene.select2d.destroy) scene.select2d.destroy();
             if(scene.glText) {

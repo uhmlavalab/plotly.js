@@ -59,8 +59,11 @@ module.exports = function plot(gd, subplot, cdata) {
 
     if(scene.dirty) {
         // make sure scenes are created
-        if(scene.error2d === true) {
-            scene.error2d = createError(regl);
+        if(scene.error2dx === true) {
+            scene.error2dx = createError(regl);
+        }
+        if(scene.error2dy === true) {
+            scene.error2dy = createError(regl);
         }
         if(scene.line2d === true) {
             scene.line2d = createLine(regl);
@@ -117,9 +120,11 @@ module.exports = function plot(gd, subplot, cdata) {
             });
             scene.line2d.update(scene.lineOptions);
         }
-        if(scene.error2d) {
-            var errorBatch = (scene.errorXOptions || []).concat(scene.errorYOptions || []);
-            scene.error2d.update(errorBatch);
+        if(scene.error2dx) {
+            scene.error2dx.update(scene.errorXOptions);
+        }
+        if(scene.error2dy) {
+            scene.error2dy.update(scene.errorYOptions);
         }
         if(scene.scatter2d) {
             scene.scatter2d.update(scene.markerOptions);
@@ -351,8 +356,11 @@ module.exports = function plot(gd, subplot, cdata) {
     if(scene.line2d) {
         scene.line2d.update(vpRange);
     }
-    if(scene.error2d) {
-        scene.error2d.update(vpRange.concat(vpRange));
+    if(scene.error2dx) {
+        scene.error2dx.update(vpRange);
+    }
+    if(scene.error2dy) {
+        scene.error2dy.update(vpRange);
     }
     if(scene.scatter2d) {
         scene.scatter2d.update(vpRange);

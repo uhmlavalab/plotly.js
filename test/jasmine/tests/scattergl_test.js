@@ -167,7 +167,8 @@ describe('end-to-end scattergl tests', function() {
             var scene = gd._fullLayout._plots.xy._scene;
             spyOn(scene.fill2d, 'draw');
             spyOn(scene.line2d, 'draw');
-            spyOn(scene.error2d, 'draw');
+            spyOn(scene.error2dx, 'draw');
+            spyOn(scene.error2dy, 'draw');
             spyOn(scene.scatter2d, 'draw');
             spyOn(scene.glText[0], 'render');
 
@@ -177,7 +178,8 @@ describe('end-to-end scattergl tests', function() {
             var scene = gd._fullLayout._plots.xy._scene;
             expect(scene.fill2d.draw).toHaveBeenCalledTimes(0);
             expect(scene.line2d.draw).toHaveBeenCalledTimes(0);
-            expect(scene.error2d.draw).toHaveBeenCalledTimes(0);
+            expect(scene.error2dx.draw).toHaveBeenCalledTimes(0);
+            expect(scene.error2dy.draw).toHaveBeenCalledTimes(0);
             expect(scene.glText[0].render).toHaveBeenCalledTimes(0);
             expect(scene.scatter2d.draw).toHaveBeenCalledTimes(1);
 
@@ -187,7 +189,8 @@ describe('end-to-end scattergl tests', function() {
             var scene = gd._fullLayout._plots.xy._scene;
             expect(scene.fill2d.draw).toHaveBeenCalledTimes(1);
             expect(scene.line2d.draw).toHaveBeenCalledTimes(1);
-            expect(scene.error2d.draw).toHaveBeenCalledTimes(2, 'twice for x AND y');
+            expect(scene.error2dx.draw).toHaveBeenCalledTimes(1);
+            expect(scene.error2dy.draw).toHaveBeenCalledTimes(1);
             expect(scene.glText[0].render).toHaveBeenCalledTimes(1);
             expect(scene.scatter2d.draw).toHaveBeenCalledTimes(3, 'both traces have markers');
         })
