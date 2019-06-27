@@ -149,12 +149,17 @@ function handleText(traceIn, traceOut, layout, coerce, textposition, opts) {
 
         if(hasOutside) coerceFont(coerce, 'outsidetextfont', dfltFont);
 
-
         if(moduleHasSelected) coerce('selected.textfont.color');
         if(moduleHasUnselected) coerce('unselected.textfont.color');
         if(moduleHasConstrain) coerce('constraintext');
         if(moduleHasCliponaxis) coerce('cliponaxis');
-        if(moduleHasTextangle) coerce('textangle');
+        if(moduleHasTextangle) {
+            if(traceIn.textangle === 'auto') {
+                coerce('textangle', 'auto');
+            } else {
+                coerce('textangle');
+            }
+        }
     }
 
     if(hasInside) {

@@ -97,7 +97,7 @@ module.exports = {
 
     textangle: {
         valType: 'angle',
-        dflt: 'auto',
+        dflt: 0,
         role: 'info',
         editType: 'plot',
         description: [

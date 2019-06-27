@@ -50,7 +50,7 @@ module.exports = {
     text: barAttrs.text,
     textposition: extendFlat({}, barAttrs.textposition, {dflt: 'auto'}),
     insidetextanchor: extendFlat({}, barAttrs.insidetextanchor, {dflt: 'middle'}),
-    textangle: extendFlat({}, barAttrs.textangle, {dflt: 0}),
+    textangle: barAttrs.textangle,
     textfont: barAttrs.textfont,
     insidetextfont: barAttrs.insidetextfont,
     outsidetextfont: barAttrs.outsidetextfont,
