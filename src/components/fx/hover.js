@@ -1061,7 +1061,6 @@ function createHoverText(hoverData, opts, gd) {
 // the other, though it hardly matters - there's just too much
 // information then.
 function hoverAvoidOverlaps(hoverLabels, axKey, fullLayout) {
-    var nummoves = 0;
     var axSign = 1;
     var nLabels = hoverLabels.size();
 
@@ -1098,83 +1097,27 @@ function hoverAvoidOverlaps(hoverLabels, axKey, fullLayout) {
             (axSign * (b[0].traceIndex - a[0].traceIndex));
     });
 
-    var donepositioning, topOverlap, bottomOverlap, i, j, pti, sumdp;
+    positionGroups(pointgroups);
 
-    function constrainGroup(grp) {
-        var minPt = grp[0];
-        var maxPt = grp[grp.length - 1];
-
-        // overlap with the top - positive vals are overlaps
-        topOverlap = minPt.pmin - minPt.pos - minPt.dp + minPt.size;
-
-        // overlap with the bottom - positive vals are overlaps
-        bottomOverlap = maxPt.pos + maxPt.dp + maxPt.size - minPt.pmax;
-
-        // check for min overlap first, so that we always
-        // see the largest labels
-        // allow for .01px overlap, so we don't get an
-        // infinite loop from rounding errors
-        if(topOverlap > 0.01) {
-            for(j = grp.length - 1; j >= 0; j--) grp[j].dp += topOverlap;
-            donepositioning = false;
-        }
-        if(bottomOverlap < 0.01) return;
-        if(topOverlap < -0.01) {
-            // make sure we're not pushing back and forth
-            for(j = grp.length - 1; j >= 0; j--) grp[j].dp -= bottomOverlap;
-            donepositioning = false;
-        }
-        if(!donepositioning) return;
-
-        // no room to fix positioning, delete off-screen points
-
-        // first see how many points we need to delete
-        var deleteCount = 0;
-        for(i = 0; i < grp.length; i++) {
-            pti = grp[i];
-            if(pti.pos + pti.dp + pti.size > minPt.pmax) deleteCount++;
-        }
-
-        // start by deleting points whose data is off screen
-        for(i = grp.length - 1; i >= 0; i--) {
-            if(deleteCount <= 0) break;
-            pti = grp[i];
-
-            // pos has already been constrained to [pmin,pmax]
-            // so look for points close to that to delete
-            if(pti.pos > minPt.pmax - 1) {
-                pti.del = true;
-                deleteCount--;
-            }
-        }
-        for(i = 0; i < grp.length; i++) {
-            if(deleteCount <= 0) break;
-            pti = grp[i];
-
-            // pos has already been constrained to [pmin,pmax]
-            // so look for points close to that to delete
-            if(pti.pos < minPt.pmin + 1) {
-                pti.del = true;
-                deleteCount--;
-
-                // shift the whole group minus into this new space
-                bottomOverlap = pti.size * 2;
-                for(j = grp.length - 1; j >= 0; j--) grp[j].dp -= bottomOverlap;
-            }
-        }
-        // then delete points that go off the bottom
-        for(i = grp.length - 1; i >= 0; i--) {
-            if(deleteCount <= 0) break;
-            pti = grp[i];
-            if(pti.pos + pti.dp + pti.size > minPt.pmax) {
-                pti.del = true;
-                deleteCount--;
-            }
+    // now put these offsets into hoverData
+    for(var i = pointgroups.length - 1; i > -1; i--) {
+        var grp = pointgroups[i];
+        for(var j = grp.length - 1; j > -1; j--) {
+            var pt = grp[j];
+            var hoverPt = pt.datum;
+            hoverPt.offset = pt.dp;
+            hoverPt.del = pt.del;
         }
     }
+}
+
+function positionGroups(pointgroups) {
+    var nLabels = pointgroups.length;
+    var donepositioning, topOverlap, bottomOverlap;
 
     // loop through groups, combining them if they overlap,
     // until nothing moves
+    var nummoves = 0;
     while(!donepositioning && nummoves <= nLabels) {
         // to avoid infinite loops, don't move more times
         // than there are traces
@@ -1183,7 +1126,7 @@ function hoverAvoidOverlaps(hoverLabels, axKey, fullLayout) {
         // assume nothing will move in this iteration,
         // reverse this if it does
         donepositioning = true;
-        i = 0;
+        var i = 0;
         while(i < pointgroups.length - 1) {
             // the higher (g0) and lower (g1) point group
             var g0 = pointgroups[i];
@@ -1196,35 +1139,109 @@ function hoverAvoidOverlaps(hoverLabels, axKey, fullLayout) {
             topOverlap = p0.pos + p0.dp + p0.size - p1.pos - p1.dp + p1.size;
 
             // Only group points that lie on the same axes
+            var j;
             if(topOverlap > 0.01 && (p0.pmin === p1.pmin) && (p0.pmax === p1.pmax)) {
                 // push the new point(s) added to this group out of the way
-                for(j = g1.length - 1; j >= 0; j--) g1[j].dp += topOverlap;
+                for(j = g1.length - 1; j > -1; j--) g1[j].dp += topOverlap;
 
                 // add them to the group
                 g0.push.apply(g0, g1);
                 pointgroups.splice(i + 1, 1);
 
                 // adjust for minimum average movement
-                sumdp = 0;
-                for(j = g0.length - 1; j >= 0; j--) sumdp += g0[j].dp;
+                var sumdp = 0;
+                for(j = g0.length - 1; j > -1; j--) sumdp += g0[j].dp;
                 bottomOverlap = sumdp / g0.length;
-                for(j = g0.length - 1; j >= 0; j--) g0[j].dp -= bottomOverlap;
+                for(j = g0.length - 1; j > -1; j--) g0[j].dp -= bottomOverlap;
                 donepositioning = false;
             } else i++;
         }
 
         // check if we're going off the plot on either side and fix
-        pointgroups.forEach(constrainGroup);
+        for(i = 0; i < pointgroups.length; i++) {
+            var inout = {
+                top: topOverlap,
+                bottom: bottomOverlap,
+                done: donepositioning
+            };
+            constrainGroup(pointgroups[i], inout);
+            topOverlap = inout.top;
+            bottomOverlap = inout.bottom;
+            donepositioning = inout.done;
+        }
+    }
+}
+
+function constrainGroup(group, inout) {
+    var i, pti;
+    var minPt = group[0];
+    var maxPt = group[group.length - 1];
+
+    // overlap with the top - positive vals are overlaps
+    inout.top = minPt.pmin - minPt.pos - minPt.dp + minPt.size;
+
+    // overlap with the bottom - positive vals are overlaps
+    inout.bottom = maxPt.pos + maxPt.dp + maxPt.size - minPt.pmax;
+
+    // check for min overlap first, so that we always
+    // see the largest labels
+    // allow for .01px overlap, so we don't get an
+    // infinite loop from rounding errors
+    if(inout.top > 0.01) {
+        for(i = group.length - 1; i > -1; i--) group[i].dp += inout.top;
+        inout.done = false;
+    }
+    if(inout.bottom < 0.01) return;
+    if(inout.top < -0.01) {
+        // make sure we're not pushing back and forth
+        for(i = group.length - 1; i > -1; i--) group[i].dp -= inout.bottom;
+        inout.done = false;
+    }
+    if(!inout.done) return;
+
+    // no room to fix positioning, delete off-screen points
+
+    // first see how many points we need to delete
+    var deleteCount = 0;
+    for(i = 0; i < group.length; i++) {
+        pti = group[i];
+        if(pti.pos + pti.dp + pti.size > minPt.pmax) deleteCount++;
     }
 
-    // now put these offsets into hoverData
-    for(i = pointgroups.length - 1; i >= 0; i--) {
-        var grp = pointgroups[i];
-        for(j = grp.length - 1; j >= 0; j--) {
-            var pt = grp[j];
-            var hoverPt = pt.datum;
-            hoverPt.offset = pt.dp;
-            hoverPt.del = pt.del;
+    // start by deleting points whose data is off screen
+    for(i = group.length - 1; i > -1; i--) {
+        if(deleteCount <= 0) break;
+        pti = group[i];
+
+        // pos has already been constrained to [pmin,pmax]
+        // so look for points close to that to delete
+        if(pti.pos > minPt.pmax - 1) {
+            pti.del = true;
+            deleteCount--;
+        }
+    }
+    for(i = 0; i < group.length; i++) {
+        if(deleteCount <= 0) break;
+        pti = group[i];
+
+        // pos has already been constrained to [pmin,pmax]
+        // so look for points close to that to delete
+        if(pti.pos < minPt.pmin + 1) {
+            pti.del = true;
+            deleteCount--;
+
+            // shift the whole group minus into this new space
+            inout.bottom = pti.size * 2;
+            for(var j = group.length - 1; j > -1; j--) group[j].dp -= inout.bottom;
+        }
+    }
+    // then delete points that go off the bottom
+    for(i = group.length - 1; i > -1; i--) {
+        if(deleteCount <= 0) break;
+        pti = group[i];
+        if(pti.pos + pti.dp + pti.size > minPt.pmax) {
+            pti.del = true;
+            deleteCount--;
         }
     }
 }
@@ -1301,27 +1318,25 @@ function alignHoverText(hoverLabels, rotateLabels) {
     });
 }
 
+function pass(v) {
+    return v || (isNumeric(v) && v === 0);
+}
+
 function cleanPoint(d, hovermode) {
     var index = d.index;
     var trace = d.trace || {};
     var cd0 = d.cd[0];
     var cd = d.cd[index] || {};
 
-    function pass(v) {
-        return v || (isNumeric(v) && v === 0);
-    }
-
-    var getVal = Array.isArray(index) ?
-        function(calcKey, traceKey) {
-            var v = Lib.castOption(cd0, index, calcKey);
-            return pass(v) ? v : Lib.extractOption({}, trace, '', traceKey);
-        } :
-        function(calcKey, traceKey) {
-            return Lib.extractOption(cd, trace, calcKey, traceKey);
-        };
-
     function fill(key, calcKey, traceKey) {
-        var val = getVal(calcKey, traceKey);
+        var val;
+        if(Array.isArray(index)) {
+            var v = Lib.castOption(cd0, index, calcKey);
+            val = pass(v) ? v : Lib.extractOption({}, trace, '', traceKey);
+        } else {
+            val = Lib.extractOption(cd, trace, calcKey, traceKey);
+        }
+
         if(pass(val)) d[key] = val;
     }
 
@@ -1567,7 +1582,7 @@ function hoverChanged(gd, evt, oldhoverdata) {
     // don't emit any events if nothing changed
     if(!oldhoverdata || oldhoverdata.length !== gd._hoverdata.length) return true;
 
-    for(var i = oldhoverdata.length - 1; i >= 0; i--) {
+    for(var i = oldhoverdata.length - 1; i > -1; i--) {
         var oldPt = oldhoverdata[i];
         var newPt = gd._hoverdata[i];
 
