@@ -64,6 +64,9 @@ module.exports = function calc(gd, trace) {
     // and it is also
     if(hasTooManyPoints && (xa.type !== 'log' && ya.type !== 'log')) {
         // FIXME: delegate this to webworker
+
+        console.log("calling cluster in plotly!");
+
         stash.tree = cluster(positions);
     } else {
         var ids = stash.ids = new Array(len);
