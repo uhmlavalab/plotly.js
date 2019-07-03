@@ -294,6 +294,8 @@ function viewModel(state, callbacks, model) {
         truncatedValues = helpers.convertTypedArray(truncatedValues);
         truncatedValues = helpers.convertTypedArray(truncatedValues);
 
+        var visibleIndex = dimension._index;
+
         return {
             key: key,
             label: dimension.label,
@@ -304,7 +306,7 @@ function viewModel(state, callbacks, model) {
             multiselect: dimension.multiselect,
             xIndex: i,
             crossfilterDimensionIndex: i,
-            visibleIndex: dimension._index,
+            visibleIndex: visibleIndex,
             height: height,
             values: truncatedValues,
             paddedUnitValues: truncatedValues.map(domainToPaddedUnit),
@@ -336,7 +338,7 @@ function viewModel(state, callbacks, model) {
                         var newRanges = f.map(function(r) {
                             return r.map(invScale).sort(Lib.sorterAsc);
                         }).sort(function(a, b) { return a[0] - b[0]; });
-                        callbacks.filterChanged(vm.key, dimension._index, newRanges);
+                        callbacks.filterChanged(vm.key, visibleIndex, newRanges);
                     }
                 }
             )
@@ -428,6 +430,9 @@ function extremeText(d, isTop) {
     return linearFormat(d.model.dimensions[d.visibleIndex], v);
 }
 
+
+var draggingLabel = false;
+var changingRange = false;
 
 module.exports = function parcoords(gd, cdModule, layout, callbacks) {
     var fullLayout = gd._fullLayout;
@@ -561,6 +566,8 @@ module.exports = function parcoords(gd, cdModule, layout, callbacks) {
     yAxis.call(d3.behavior.drag()
         .origin(function(d) { return d; })
         .on('drag', function(d) {
+            if(changingRange) return;
+
             var p = d.parent;
             state.linePickActive(false);
             d.x = Math.max(-c.overdrag, Math.min(d.model.width + c.overdrag, d3.event.x));
@@ -581,8 +588,13 @@ module.exports = function parcoords(gd, cdModule, layout, callbacks) {
             yAxis.each(function(e, i0, i1) { if(i1 === d.parent.key) p.dimensions[i0] = e; });
             p.contextLayer && p.contextLayer.render(p.panels, false, !someFiltersActive(p));
             p.focusLayer.render && p.focusLayer.render(p.panels);
+
+            draggingLabel = true;
         })
         .on('dragend', function(d) {
+            if(changingRange) return;
+            if(!draggingLabel) return;
+
             var p = d.parent;
             d.x = d.xScale(d.xIndex);
             d.canvasX = d.x * d.model.canvasPixelRatio;
@@ -597,6 +609,8 @@ module.exports = function parcoords(gd, cdModule, layout, callbacks) {
             if(callbacks && callbacks.axesMoved) {
                 callbacks.axesMoved(p.key, p.dimensions.map(function(e) {return e.crossfilterDimensionIndex;}));
             }
+
+            draggingLabel = undefined;
         })
     );
 
@@ -695,6 +709,27 @@ module.exports = function parcoords(gd, cdModule, layout, callbacks) {
             } else {
                 return 'middle';
             }
+        })
+        .on('click', function(d) {
+            if(draggingLabel === undefined) {
+                draggingLabel = false;
+                return;
+            }
+
+            changingRange = true;
+
+            if(callbacks && callbacks.rangeChanged) {
+                var trace = cdModule[0][0].trace;
+
+                var id = d.visibleIndex;
+
+                var oldRange = trace.dimensions[id]._ax.range;
+                var newRange = [oldRange[1], oldRange[0]]; // flip range
+
+                callbacks.rangeChanged(d.parent.key, id, newRange);
+            }
+
+            changingRange = false;
         });
 
     var axisExtent = axisOverlays.selectAll('.' + c.cn.axisExtent)

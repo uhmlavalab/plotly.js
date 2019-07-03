@@ -8,6 +8,7 @@
 
 'use strict';
 
+var Plotly = require('../../plot_api/plot_api');
 var parcoords = require('./parcoords');
 var prepareRegl = require('../../lib/prepare_regl');
 var isVisible = require('./helpers').isVisible;
@@ -32,17 +33,16 @@ function sorter(visibleIndices, orig) {
 }
 
 module.exports = function plot(gd, cdModule) {
-    var fullLayout = gd._fullLayout;
-
     var success = prepareRegl(gd);
     if(!success) return;
+
+    var fullLayout = gd._fullLayout;
+    var size = fullLayout._size;
 
     var currentDims = {};
     var initialDims = {};
     var fullIndices = {};
     var inputIndices = {};
-
-    var size = fullLayout._size;
 
     cdModule.forEach(function(d, i) {
         var trace = d[0].trace;
@@ -51,6 +51,14 @@ module.exports = function plot(gd, cdModule) {
         currentDims[i] = gd.data[iIn].dimensions;
         initialDims[i] = gd.data[iIn].dimensions.slice();
     });
+
+    var hover = function(eventData) {
+        gd.emit('plotly_hover', eventData);
+    };
+
+    var unhover = function(eventData) {
+        gd.emit('plotly_unhover', eventData);
+    };
 
     var filterChanged = function(i, initialDimIndex, newRanges) {
         // Have updated `constraintrange` data on `gd.data` and raise `Plotly.restyle` event
@@ -72,7 +80,7 @@ module.exports = function plot(gd, cdModule) {
 
         var fullDimension = gd._fullData[fullIndices[i]].dimensions[initialDimIndex];
 
-        if(!newConstraints.length) {
+        if(!newConstraints || !newConstraints.length) {
             delete dim.constraintrange;
             delete fullDimension.constraintrange;
             newConstraints = null;
@@ -89,12 +97,13 @@ module.exports = function plot(gd, cdModule) {
         gd.emit('plotly_restyle', [restyleData, [inputIndices[i]]]);
     };
 
-    var hover = function(eventData) {
-        gd.emit('plotly_hover', eventData);
-    };
+    var rangeChanged = function(i, initialDimIndex, newRange) {
+        var aStr = 'dimensions[' + initialDimIndex + '].range';
 
-    var unhover = function(eventData) {
-        gd.emit('plotly_unhover', eventData);
+        var restyleData = {};
+        restyleData[aStr] = [newRange];
+
+        Plotly.restyle(gd, restyleData, [inputIndices[i]]);
     };
 
     var axesMoved = function(i, visibleIndices) {
@@ -144,9 +153,10 @@ module.exports = function plot(gd, cdModule) {
             }
         },
         { // callbacks
-            filterChanged: filterChanged,
             hover: hover,
             unhover: unhover,
+            filterChanged: filterChanged,
+            rangeChanged: rangeChanged,
             axesMoved: axesMoved
         }
     );
