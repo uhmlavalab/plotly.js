@@ -385,8 +385,7 @@ function getTransformToMoveInsideBar(x0, x1, y0, y1, textBB, opts) {
     if(autoRotate &&
         !(textWidth <= lx && textHeight <= ly) &&
         (textWidth > lx || textHeight > ly) && (
-        !(textWidth > ly || textHeight > lx) ||
-        ((textWidth < textHeight) !== (lx < ly))
+        !(textWidth > ly || textHeight > lx)
     )) {
         isAutoRotated = true;
     }
