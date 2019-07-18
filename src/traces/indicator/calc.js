@@ -8,8 +8,6 @@
 
 'use strict';
 
-// var Lib = require('../../lib');
-
 function calc(gd, trace) {
     var cd = [];
 

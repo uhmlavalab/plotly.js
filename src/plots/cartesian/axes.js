@@ -2183,7 +2183,7 @@ axes.makeLabelFns = function(ax, shift, angle) {
         labelShift = ax.ticklen * Math.sin(rad);
     }
     if(ax.showticklabels && (ticksOnOutsideLabels || ax.showline)) {
-        labelStandoff += 0.2 * ax.tickfont.size;
+        labelStandoff += 0.2 * ((ax.tickfont || {}).size || 0);
     }
     labelStandoff += (ax.linewidth || 1) / 2;
 

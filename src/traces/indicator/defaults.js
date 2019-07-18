@@ -8,11 +8,18 @@
 
 'use strict';
 
+var isNumeric = require('fast-isnumeric');
 var Lib = require('../../lib');
 var attributes = require('./attributes');
 var handleDomainDefaults = require('../../plots/domain').defaults;
 var Template = require('../../plot_api/plot_template');
 var handleArrayContainerDefaults = require('../../plots/array_container_defaults');
+
+var Axes = require('../../plots/cartesian/axes');
+var axesAttrs = require('../../plots/cartesian/layout_attributes');
+var handleAxisDefaults = require('../../plots/cartesian/axis_defaults');
+var handleAxisPositionDefaults = require('../../plots/cartesian/position_defaults');
+
 var cn = require('./constants.js');
 
 var handleTickValueDefaults = require('../../plots/cartesian/tick_value_defaults');
@@ -33,13 +40,21 @@ function supplyDefaults(traceIn, traceOut, defaultColor, layout) {
     traceOut._hasGauge = traceOut.mode.indexOf('gauge') !== -1;
 
     coerce('value');
+    var dfltRange0 = 0;
+    var dfltRange1 = 1.5 * traceOut.value;
+    var range = Lib.coerce(traceIn, traceOut, attributes.gauge.axis, 'range', [dfltRange0, dfltRange1]);
+    var keepRangeIn;
+    if(traceIn.gauge && traceIn.gauge.axis && traceIn.gauge.axis.range) {
+        keepRangeIn = [traceIn.gauge.axis.range[0], traceIn.gauge.axis.range[1]];
+        if(!isNumeric(traceIn.gauge.axis.range[0])) traceIn.gauge.axis.range[0] = dfltRange0;
+        if(!isNumeric(traceIn.gauge.axis.range[1])) traceIn.gauge.axis.range[1] = dfltRange1;
+    }
 
     // Number attributes
     var auto = new Array(2);
     var bignumberFontSize;
     if(traceOut._hasNumber) {
         coerce('number.valueformat');
-        if(!traceOut.number.valueformat) traceOut.number.valueformat = attributes.number.valueformat.dflt;
         coerce('number.font.color', layout.font.color);
         coerce('number.font.family', layout.font.family);
         coerce('number.font.size');
@@ -64,8 +79,7 @@ function supplyDefaults(traceIn, traceOut, defaultColor, layout) {
         }
         coerce('delta.reference', traceOut.value);
         coerce('delta.relative');
-        coerce('delta.valueformat');
-        if(!traceOut.delta.valueformat) traceOut.delta.valueformat = traceOut.delta.relative ? '2%' : '.3s';
+        coerce('delta.valueformat', traceOut.delta.relative ? '2%' : '');
         coerce('delta.increasing.symbol');
         coerce('delta.increasing.color');
         coerce('delta.decreasing.symbol');
@@ -82,13 +96,12 @@ function supplyDefaults(traceIn, traceOut, defaultColor, layout) {
     coerce('title.text');
 
     // Gauge attributes
-    var gaugeIn, gaugeOut, axisIn, axisOut;
+    var gaugeIn, gaugeOut;
+
     function coerceGauge(attr, dflt) {
         return Lib.coerce(gaugeIn, gaugeOut, attributes.gauge, attr, dflt);
     }
-    function coerceGaugeAxis(attr, dflt) {
-        return Lib.coerce(axisIn, axisOut, attributes.gauge.axis, attr, dflt);
-    }
+
     if(traceOut._hasGauge) {
         gaugeIn = traceIn.gauge;
         if(!gaugeIn) gaugeIn = {};
@@ -126,23 +139,104 @@ function supplyDefaults(traceIn, traceOut, defaultColor, layout) {
         coerceGauge('threshold.thickness');
         coerceGauge('threshold.line.width');
         coerceGauge('threshold.line.color');
-
-        // Gauge axis
-        axisIn = {};
-        if(gaugeIn) axisIn = gaugeIn.axis || {};
-        axisOut = Template.newContainer(gaugeOut, 'axis');
-        coerceGaugeAxis('visible');
-        coerceGaugeAxis('range', [0, 1.5 * traceOut.value]);
-
-        var opts = {outerTicks: true};
-        handleTickValueDefaults(axisIn, axisOut, coerceGaugeAxis, 'linear');
-        handleTickLabelDefaults(axisIn, axisOut, coerceGaugeAxis, 'linear', opts);
-        handleTickMarkDefaults(axisIn, axisOut, coerceGaugeAxis, opts);
     } else {
         coerce('title.align', 'center');
         coerce('align', 'center');
         traceOut._isAngular = traceOut._isBullet = false;
     }
+
+    var axType = 'linear';
+
+    function prepareAxis(axisOut, axisIn, axisAttr) {
+        var coerceAxis = function(attr, dflt) {
+            return Lib.coerce(axisIn, axisOut, axisAttr, attr, dflt);
+        };
+
+        axisOut._id = 'x';
+        axisOut.type = 'linear';
+        axisOut.range = range;
+        axisOut.dtick = 0.1 * Math.abs(range[1] - range[0]) || 1;
+
+        coerceAxis('visible');
+        Axes.setConvert(axisOut, layout);
+        Axes.prepTicks(axisOut);
+
+        var tickOptions = {
+            outerTicks: true
+        };
+        handleTickLabelDefaults(axisIn, axisOut, coerceAxis, axType, tickOptions, {pass: 1});
+        handleTickValueDefaults(axisIn, axisOut, coerceAxis, axType);
+        handleTickLabelDefaults(axisIn, axisOut, coerceAxis, axType, tickOptions, {pass: 2});
+        handleTickMarkDefaults(axisIn, axisOut, coerceAxis, tickOptions);
+
+        var axisOptions = {
+            letter: 'x',
+            font: layout.font,
+            noHover: true,
+            noTickson: true
+        };
+        handleAxisDefaults(axisIn, axisOut, coerceAxis, axisOptions, layout);
+        handleAxisPositionDefaults(axisIn, axisOut, coerceAxis, axisOptions);
+
+        return axisOut;
+    }
+
+    // Number axis
+    if(traceOut._hasNumber) {
+        traceOut.number._axis = prepareAxis(
+            {},
+            {
+                tickformat: traceOut.number.valueformat
+            },
+            axesAttrs
+        );
+    }
+
+    // Delta axis
+    if(traceOut._hasDelta && traceOut.delta) {
+        traceOut.delta._axis = prepareAxis(
+            {},
+            {
+                tickformat: traceOut.delta.valueformat
+            },
+            axesAttrs
+        );
+    }
+
+    var i, q, key;
+
+    // Gauge axis
+    if(traceOut._hasGauge) {
+        var list = Object.getOwnPropertyNames(attributes.gauge.axis);
+
+        var ax = (traceIn.gauge || {}).axis || {};
+
+        // interface for all possible inputs
+        var axIn = {};
+
+        for(i = 0; i < list.length; i++) {
+            key = list[i];
+            q = ax[key];
+            if(q !== undefined) axIn[key] = q;
+        }
+
+        ax = traceOut.gauge._axis = prepareAxis(
+            Template.newContainer(traceOut.gauge, 'axis'),
+            axIn,
+            axesAttrs
+        );
+
+        // interface for all possible outputs
+        var axOut = traceOut.gauge.axis = {};
+        for(i = 0; i < list.length; i++) {
+            key = list[i];
+            q = ax[key];
+            if(q !== undefined) axOut[key] = q;
+        }
+    }
+
+    delete traceOut.range;
+    if(keepRangeIn) traceIn.gauge.axis.range = keepRangeIn;
 }
 
 function stepDefaults(stepIn, stepOut) {

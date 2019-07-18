@@ -18,6 +18,12 @@ var axesAttrs = require('../../plots/cartesian/layout_attributes');
 var templatedArray = require('../../plot_api/plot_template').templatedArray;
 var delta = require('../../constants/delta.js');
 
+var formatDescription = [
+    'Sets the value formatting rule using d3 formatting mini-language',
+    'which is similar to those of Python. See',
+    'https://github.com/d3/d3-format/blob/master/README.md#locale_format'
+].join(' ');
+
 var textFontAttrs = fontAttrs({
     editType: 'plot',
     colorEditType: 'plot'
@@ -162,14 +168,10 @@ module.exports = {
     number: {
         valueformat: {
             valType: 'string',
-            dflt: '.3s',
+            dflt: '',
             role: 'info',
             editType: 'plot',
-            description: [
-                'Sets the value formatting rule using d3 formatting mini-language',
-                'which is similar to those of Python. See',
-                'https://github.com/d3/d3-format/blob/master/README.md#locale_format'
-            ].join(' ')
+            description: formatDescription
         },
         font: extendFlat({}, textFontAttrs, {
             description: [
@@ -229,10 +231,9 @@ module.exports = {
             valType: 'string',
             role: 'info',
             editType: 'plot',
-            description: [
-                'Sets the value formatting rule using d3 formatting mini-language',
-                'which is similar to those of Python. See',
-                'https://github.com/d3/d3-format/blob/master/README.md#locale_format'
+            description: formatDescription + [
+                ' Please note that the default applied for relative deltas is \'2%\';',
+                'otherwise, blank string would be used as the default.'
             ].join(' ')
         },
         increasing: {
@@ -328,33 +329,78 @@ module.exports = {
         axis: overrideAll({
             range: rangeAttr,
             visible: extendFlat({}, axesAttrs.visible, {
-                dflt: true
+                dflt: true,
+                editType: 'plot'
             }),
             // tick and title properties named and function exactly as in axes
-            tickmode: axesAttrs.tickmode,
-            nticks: axesAttrs.nticks,
-            tick0: axesAttrs.tick0,
-            dtick: axesAttrs.dtick,
-            tickvals: axesAttrs.tickvals,
-            ticktext: axesAttrs.ticktext,
-            ticks: extendFlat({}, axesAttrs.ticks, {dflt: 'outside'}),
-            ticklen: axesAttrs.ticklen,
-            tickwidth: axesAttrs.tickwidth,
-            tickcolor: axesAttrs.tickcolor,
-            showticklabels: axesAttrs.showticklabels,
-            tickfont: fontAttrs({
-                description: 'Sets the color bar\'s tick label font'
+            tickmode: extendFlat({}, axesAttrs.tickmode, {
+                editType: 'plot'
             }),
-            tickangle: axesAttrs.tickangle,
-            tickformat: axesAttrs.tickformat,
-            tickformatstops: axesAttrs.tickformatstops,
-            tickprefix: axesAttrs.tickprefix,
-            showtickprefix: axesAttrs.showtickprefix,
-            ticksuffix: axesAttrs.ticksuffix,
-            showticksuffix: axesAttrs.showticksuffix,
-            separatethousands: axesAttrs.separatethousands,
-            exponentformat: axesAttrs.exponentformat,
-            showexponent: axesAttrs.showexponent,
+            nticks: extendFlat({}, axesAttrs.nticks, {
+                editType: 'plot'
+            }),
+            tick0: extendFlat({}, axesAttrs.tick0, {
+                editType: 'plot'
+            }),
+            dtick: extendFlat({}, axesAttrs.dtick, {
+                editType: 'plot'
+            }),
+            tickvals: extendFlat({}, axesAttrs.tickvals, {
+                editType: 'plot'
+            }),
+            ticktext: extendFlat({}, axesAttrs.ticktext, {
+                editType: 'plot'
+            }),
+            ticks: extendFlat({}, axesAttrs.ticks, {
+                dflt: 'outside',
+                editType: 'plot'
+            }),
+            ticklen: extendFlat({}, axesAttrs.ticklen, {
+                editType: 'plot'
+            }),
+            tickwidth: extendFlat({}, axesAttrs.tickwidth, {
+                editType: 'plot'
+            }),
+            tickcolor: extendFlat({}, axesAttrs.tickcolor, {
+                editType: 'plot'
+            }),
+            showticklabels: extendFlat({}, axesAttrs.showticklabels, {
+                editType: 'plot'
+            }),
+            tickfont: fontAttrs({
+                description: 'Sets the color bar\'s tick label font',
+                editType: 'plot'
+            }),
+            tickangle: extendFlat({}, axesAttrs.tickangle, {
+                editType: 'plot'
+            }),
+            tickformat: extendFlat({}, axesAttrs.tickformat, {
+                editType: 'plot'
+            }),
+            tickformatstops: extendFlat({}, axesAttrs.tickformatstops, {
+                editType: 'plot'
+            }),
+            tickprefix: extendFlat({}, axesAttrs.tickprefix, {
+                editType: 'plot'
+            }),
+            showtickprefix: extendFlat({}, axesAttrs.showtickprefix, {
+                editType: 'plot'
+            }),
+            ticksuffix: extendFlat({}, axesAttrs.ticksuffix, {
+                editType: 'plot'
+            }),
+            showticksuffix: extendFlat({}, axesAttrs.showticksuffix, {
+                editType: 'plot'
+            }),
+            separatethousands: extendFlat({}, axesAttrs.separatethousands, {
+                editType: 'plot'
+            }),
+            exponentformat: extendFlat({}, axesAttrs.exponentformat, {
+                editType: 'plot'
+            }),
+            showexponent: extendFlat({}, axesAttrs.showexponent, {
+                editType: 'plot'
+            }),
             editType: 'plot'
         }, 'plot'),
         // Steps (or ranges) and thresholds

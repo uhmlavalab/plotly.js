@@ -18,9 +18,6 @@ var cn = require('./constants');
 var svgTextUtils = require('../../lib/svg_text_utils');
 
 var Axes = require('../../plots/cartesian/axes');
-var handleAxisDefaults = require('../../plots/cartesian/axis_defaults');
-var handleAxisPositionDefaults = require('../../plots/cartesian/position_defaults');
-var axisLayoutAttrs = require('../../plots/cartesian/layout_attributes');
 
 var Color = require('../../components/color');
 var anchor = {
@@ -33,8 +30,6 @@ var position = {
     'center': 0.5,
     'right': 1
 };
-
-var SI_PREFIX = /[yzafpnµmkMGTPEZY]/;
 
 function hasTransition(transitionOpts) {
     // If transition config is provided, then it is only a partial replot and traces not
@@ -124,7 +119,7 @@ module.exports = function plot(gd, cdModule, transitionOpts, makeOnCompleteCallb
         var gaugeBg, gaugeOutline;
         if(hasGauge) {
             gaugeBg = {
-                range: trace.gauge.axis.range,
+                range: trace.gauge._axis.range,
                 color: trace.gauge.bgcolor,
                 line: {
                     color: trace.gauge.bordercolor,
@@ -134,7 +129,7 @@ module.exports = function plot(gd, cdModule, transitionOpts, makeOnCompleteCallb
             };
 
             gaugeOutline = {
-                range: trace.gauge.axis.range,
+                range: trace.gauge._axis.range,
                 color: 'rgba(0, 0, 0, 0)',
                 line: {
                     color: trace.gauge.bordercolor,
@@ -204,7 +199,7 @@ module.exports = function plot(gd, cdModule, transitionOpts, makeOnCompleteCallb
             if(hasGauge) {
                 if(isAngular) {
                     // position above axis ticks/labels
-                    if(trace.gauge.axis.visible) {
+                    if(trace.gauge._axis.visible) {
                         var bBox = Drawing.bBox(angularaxisLayer.node());
                         titleY = (bBox.top - titlePadding) - titlebBox.bottom;
                     } else {
@@ -227,19 +222,29 @@ module.exports = function plot(gd, cdModule, transitionOpts, makeOnCompleteCallb
 
 function drawBulletGauge(gd, plotGroup, cd, opts) {
     var trace = cd[0].trace;
+    var domain = trace.domain;
+    var bulletLeft = domain.x[0];
+    var bulletRight = domain.x[0] + (domain.x[1] - domain.x[0]) * ((trace._hasNumber || trace._hasDelta) ? (1 - cn.bulletNumberDomainSize) : 1);
+
+    var ax = trace.gauge._axis;
+    ax._id = 'xbulletaxis';
+
+    ax.domain = [bulletLeft, bulletRight];
+
+    ax.setScale();
+    var vals = Axes.calcTicks(ax);
+    var transFn = Axes.makeTransFn(ax);
+    var tickSign = Axes.getTickSigns(ax)[2];
 
     var bullet = opts.gauge;
     var axisLayer = opts.layer;
     var gaugeBg = opts.gaugeBg;
     var gaugeOutline = opts.gaugeOutline;
     var size = opts.size;
-    var domain = trace.domain;
+    var shift = size.t + size.h;
 
     var transitionOpts = opts.transitionOpts;
     var onComplete = opts.onComplete;
-
-    // preparing axis
-    var ax, vals, transFn, tickSign, shift;
 
     // Enter bullet, axis
     bullet.enter().append('g').classed('bullet', true);
@@ -253,19 +258,7 @@ function drawBulletGauge(gd, plotGroup, cd, opts) {
     // Draw bullet
     var bulletHeight = size.h; // use all vertical domain
     var innerBulletHeight = trace.gauge.bar.thickness * bulletHeight;
-    var bulletLeft = domain.x[0];
-    var bulletRight = domain.x[0] + (domain.x[1] - domain.x[0]) * ((trace._hasNumber || trace._hasDelta) ? (1 - cn.bulletNumberDomainSize) : 1);
 
-    ax = mockAxis(gd, trace.gauge.axis, trace.gauge.axis.range);
-    ax._id = 'xbulletaxis';
-    ax.domain = [bulletLeft, bulletRight];
-    ax.setScale();
-
-    vals = Axes.calcTicks(ax);
-    transFn = Axes.makeTransFn(ax);
-    tickSign = Axes.getTickSigns(ax)[2];
-
-    shift = size.t + size.h;
     if(ax.visible) {
         Axes.drawTicks(gd, ax, {
             vals: ax.ticks === 'inside' ? Axes.clipEnds(ax, vals) : vals,
@@ -313,10 +306,10 @@ function drawBulletGauge(gd, plotGroup, cd, opts) {
             .ease(transitionOpts.easing)
             .each('end', function() { onComplete && onComplete(); })
             .each('interrupt', function() { onComplete && onComplete(); })
-            .attr('width', Math.max(0, ax.c2p(Math.min(trace.gauge.axis.range[1], cd[0].y))));
+            .attr('width', Math.max(0, ax.c2p(Math.min(ax.range[1], cd[0].y))));
     } else {
         fgBullet.select('rect')
-            .attr('width', Math.max(0, ax.c2p(Math.min(trace.gauge.axis.range[1], cd[0].y))));
+            .attr('width', Math.max(0, ax.c2p(Math.min(ax.range[1], cd[0].y))));
     }
     fgBullet.exit().remove();
 
@@ -343,6 +336,13 @@ function drawBulletGauge(gd, plotGroup, cd, opts) {
 function drawAngularGauge(gd, plotGroup, cd, opts) {
     var trace = cd[0].trace;
 
+    var ax = trace.gauge._axis;
+    ax._id = 'xangularaxis';
+
+    ax.setScale();
+    var vals = Axes.calcTicks(ax);
+    var tickSign = Axes.getTickSigns(ax)[2];
+
     var size = opts.size;
     var radius = opts.radius;
     var innerRadius = opts.innerRadius;
@@ -358,8 +358,8 @@ function drawAngularGauge(gd, plotGroup, cd, opts) {
     // circular gauge
     var theta = Math.PI / 2;
     function valueToAngle(v) {
-        var min = trace.gauge.axis.range[0];
-        var max = trace.gauge.axis.range[1];
+        var min = ax.range[0];
+        var max = ax.range[1];
         var angle = (v - min) / (max - min) * Math.PI - theta;
         if(angle < -theta) return -theta;
         if(angle > theta) return theta;
@@ -382,9 +382,6 @@ function drawAngularGauge(gd, plotGroup, cd, opts) {
             });
     }
 
-    // preparing axis
-    var ax, vals, transFn, tickSign;
-
     // Enter gauge and axis
     gauge.enter().append('g').classed('angular', true);
     gauge.attr('transform', strTranslate(gaugePosition[0], gaugePosition[1]));
@@ -393,12 +390,6 @@ function drawAngularGauge(gd, plotGroup, cd, opts) {
         .classed('angularaxis', true)
         .classed('crisp', true);
     axisLayer.selectAll('g.' + 'xangularaxis' + 'tick,path,text').remove();
-
-    ax = mockAxis(gd, trace.gauge.axis);
-    ax.type = 'linear';
-    ax.range = trace.gauge.axis.range;
-    ax._id = 'xangularaxis'; // or 'y', but I don't think this makes a difference here
-    ax.setScale();
 
     // 't'ick to 'g'eometric radians is used all over the place here
     var t2g = function(d) {
@@ -435,7 +426,7 @@ function drawAngularGauge(gd, plotGroup, cd, opts) {
             gaugePosition[1] - radius * Math.sin(rad)
         );
     };
-    transFn = function(d) {
+    var transFn = function(d) {
         return _transFn(t2g(d));
     };
     var transFn2 = function(d) {
@@ -518,6 +509,30 @@ function drawAngularGauge(gd, plotGroup, cd, opts) {
 function drawNumbers(gd, plotGroup, cd, opts) {
     var trace = cd[0].trace;
 
+    function numberFmt(v) {
+        return trace._hasNumber ?
+            Axes.tickText(trace.number._axis, v).text :
+            v;
+    }
+
+    function deltaFmt(v) {
+        return trace._hasDelta ?
+            Axes.tickText(trace.delta._axis, v).text :
+            v;
+    }
+
+    function roundTransit(from, v, to) {
+        var e = 1;
+        for(var i = 0; i < 3; i++) {
+            if(from === (from | 0) && to === (to | 0)) return Math.round(v * e) / e;
+            from *= 10;
+            to *= 10;
+            e *= 10;
+        }
+
+        return v;
+    }
+
     var numbersX = opts.numbersX;
     var numbersY = opts.numbersY;
     var numbersAlign = trace.align || 'center';
@@ -547,29 +562,8 @@ function drawNumbers(gd, plotGroup, cd, opts) {
         .attr('dy', null);
     sel.exit().remove();
 
-    // Function to override the number formatting used during transitions
-    function transitionFormat(valueformat, fmt, from, to) {
-        // For now, do not display SI prefix if start and end value do not have any
-        if(valueformat.match('s') && // If using SI prefix
-            (from >= 0 !== to >= 0) && // If sign change
-            (!fmt(from).slice(-1).match(SI_PREFIX) && !fmt(to).slice(-1).match(SI_PREFIX)) // Has no SI prefix
-        ) {
-            var transitionValueFormat = valueformat.slice().replace('s', 'f').replace(/\d+/, function(m) { return parseInt(m) - 1;});
-            var transitionAx = mockAxis(gd, {tickformat: transitionValueFormat});
-            return function(v) {
-                // Switch to fixed precision if number is smaller than one
-                if(Math.abs(v) < 1) return Axes.tickText(transitionAx, v).text;
-                return fmt(v);
-            };
-        } else {
-            return fmt;
-        }
-    }
-
     function drawBignumber() {
         // bignumber
-        var bignumberAx = mockAxis(gd, {tickformat: trace.number.valueformat});
-        var fmt = function(v) { return Axes.tickText(bignumberAx, v).text;};
         var bignumberSuffix = trace.number.suffix;
         var bignumberPrefix = trace.number.prefix;
 
@@ -578,7 +572,7 @@ function drawNumbers(gd, plotGroup, cd, opts) {
             .call(Drawing.font, trace.number.font);
 
         function writeNumber() {
-            number.text(bignumberPrefix + fmt(cd[0].y) + bignumberSuffix);
+            number.text(bignumberPrefix + numberFmt(cd[0].y) + bignumberSuffix);
         }
 
         if(hasTransition(transitionOpts)) {
@@ -590,36 +584,36 @@ function drawNumbers(gd, plotGroup, cd, opts) {
                 .each('interrupt', function() { writeNumber(); onComplete && onComplete(); })
                 .attrTween('text', function() {
                     var that = d3.select(this);
-                    var interpolator = d3.interpolateNumber(cd[0].lastY, cd[0].y);
-                    trace._lastValue = cd[0].y;
-
-                    var transitionFmt = transitionFormat(trace.number.valueformat, fmt, cd[0].lastY, cd[0].y);
+                    var to = cd[0].y;
+                    var from = cd[0].lastY;
+                    var interpolator = d3.interpolateNumber(from, to);
+                    trace._lastValue = to;
                     return function(t) {
-                        that.text(bignumberPrefix + transitionFmt(interpolator(t)) + bignumberSuffix);
+                        var v = roundTransit(from, interpolator(t), to);
+                        that.text(bignumberPrefix + numberFmt(v) + bignumberSuffix);
                     };
                 });
         } else {
             writeNumber();
         }
 
-        bignumberbBox = measureText(bignumberPrefix + fmt(cd[0].y) + bignumberSuffix, trace.number.font, numbersAnchor);
+        bignumberbBox = measureText(bignumberPrefix + numberFmt(cd[0].y) + bignumberSuffix, trace.number.font, numbersAnchor);
         return number;
     }
 
     function drawDelta() {
         // delta
-        var deltaAx = mockAxis(gd, {tickformat: trace.delta.valueformat});
-        var deltaFmt = function(v) { return Axes.tickText(deltaAx, v).text;};
         var deltaValue = function(d) {
             var value = trace.delta.relative ? d.relativeDelta : d.delta;
             return value;
         };
-        var deltaFormatText = function(value, numberFmt) {
-            if(value === 0) return '-';
-            return (value > 0 ? trace.delta.increasing.symbol : trace.delta.decreasing.symbol) + numberFmt(value);
+        var deltaFormatText = function(value) {
+            var v = deltaFmt(value);
+
+            return (value < 0 ? trace.delta.decreasing.symbol : trace.delta.increasing.symbol) + v;
         };
         var deltaFill = function(d) {
-            return d.delta >= 0 ? trace.delta.increasing.color : trace.delta.decreasing.color;
+            return d.delta < 0 ? trace.delta.decreasing.color : trace.delta.increasing.color;
         };
         if(trace._deltaLastValue === undefined) {
             trace._deltaLastValue = deltaValue(cd[0]);
@@ -630,7 +624,7 @@ function drawNumbers(gd, plotGroup, cd, opts) {
             .call(Color.fill, deltaFill({delta: trace._deltaLastValue}));
 
         function writeDelta() {
-            delta.text(function() { return deltaFormatText(deltaValue(cd[0]), deltaFmt);})
+            delta.text(function() { return deltaFormatText(deltaValue(cd[0]));})
                 .call(Color.fill, deltaFill(cd[0]));
         }
 
@@ -643,11 +637,11 @@ function drawNumbers(gd, plotGroup, cd, opts) {
                     var that = d3.select(this);
                     var to = deltaValue(cd[0]);
                     var from = trace._deltaLastValue;
-                    var transitionFmt = transitionFormat(trace.delta.valueformat, deltaFmt, from, to);
                     var interpolator = d3.interpolateNumber(from, to);
                     trace._deltaLastValue = to;
                     return function(t) {
-                        that.text(deltaFormatText(interpolator(t), transitionFmt));
+                        var v = roundTransit(from, interpolator(t), to);
+                        that.text(deltaFormatText(v));
                         that.call(Color.fill, deltaFill({delta: interpolator(t)}));
                     };
                 })
@@ -657,7 +651,7 @@ function drawNumbers(gd, plotGroup, cd, opts) {
             writeDelta();
         }
 
-        deltabBox = measureText(deltaFormatText(deltaValue(cd[0]), deltaFmt), trace.delta.font, numbersAnchor);
+        deltabBox = measureText(deltaFormatText(deltaValue(cd[0])), trace.delta.font, numbersAnchor);
         return delta;
     }
 
@@ -665,13 +659,23 @@ function drawNumbers(gd, plotGroup, cd, opts) {
     var delta;
     if(trace._hasDelta) {
         delta = drawDelta();
-        key += trace.delta.position + trace.delta.font.size + trace.delta.font.family + trace.delta.valueformat;
-        key += trace.delta.increasing.symbol + trace.delta.decreasing.symbol;
+        key += [
+            trace.delta.position,
+            trace.delta.font.size,
+            trace.delta.font.family,
+            trace.delta.increasing.symbol,
+            trace.delta.decreasing.symbol
+        ].join('');
         numbersbBox = deltabBox;
     }
     if(trace._hasNumber) {
         drawBignumber();
-        key += trace.number.font.size + trace.number.font.family + trace.number.valueformat + trace.number.suffix + trace.number.prefix;
+        key += [
+            trace.number.font.size,
+            trace.number.font.family,
+            trace.number.suffix,
+            trace.number.prefix
+        ].join('');
         numbersbBox = bignumberbBox;
     }
 
@@ -791,61 +795,6 @@ function arcTween(arc, endAngle, newAngle) {
             return arc.endAngle(interpolate(t))();
         };
     };
-}
-
-// mocks our axis
-function mockAxis(gd, opts, zrange) {
-    var fullLayout = gd._fullLayout;
-
-    var axisIn = {
-        visible: opts.visible,
-        type: 'linear',
-        ticks: 'outside',
-        range: zrange,
-        tickmode: opts.tickmode,
-        nticks: opts.nticks,
-        tick0: opts.tick0,
-        dtick: opts.dtick,
-        tickvals: opts.tickvals,
-        ticktext: opts.ticktext,
-        ticklen: opts.ticklen,
-        tickwidth: opts.tickwidth,
-        tickcolor: opts.tickcolor,
-        showticklabels: opts.showticklabels,
-        tickfont: opts.tickfont,
-        tickangle: opts.tickangle,
-        tickformat: opts.tickformat,
-        exponentformat: opts.exponentformat,
-        separatethousands: opts.separatethousands,
-        showexponent: opts.showexponent,
-        showtickprefix: opts.showtickprefix,
-        tickprefix: opts.tickprefix,
-        showticksuffix: opts.showticksuffix,
-        ticksuffix: opts.ticksuffix,
-        title: opts.title,
-        showline: true
-    };
-
-    var axisOut = {
-        type: 'linear',
-        _id: 'x' + opts._id
-    };
-
-    var axisOptions = {
-        letter: 'x',
-        font: fullLayout.font,
-        noHover: true,
-        noTickson: true
-    };
-
-    function coerce(attr, dflt) {
-        return Lib.coerce(axisIn, axisOut, axisLayoutAttrs, attr, dflt);
-    }
-
-    handleAxisDefaults(axisIn, axisOut, coerce, axisOptions, fullLayout);
-    handleAxisPositionDefaults(axisIn, axisOut, coerce, axisOptions);
-
-    return axisOut;
 }
 
 function strTranslate(x, y) {
