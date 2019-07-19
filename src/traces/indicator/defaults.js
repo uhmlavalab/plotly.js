@@ -178,6 +178,9 @@ function supplyDefaults(traceIn, traceOut, defaultColor, layout) {
         handleAxisDefaults(axisIn, axisOut, coerceAxis, axisOptions, layout);
         handleAxisPositionDefaults(axisIn, axisOut, coerceAxis, axisOptions);
 
+        // reset range
+        axisOut.range = range;
+
         return axisOut;
     }
 
