@@ -329,78 +329,35 @@ module.exports = {
         axis: overrideAll({
             range: rangeAttr,
             visible: extendFlat({}, axesAttrs.visible, {
-                dflt: true,
-                editType: 'plot'
+                dflt: true
             }),
             // tick and title properties named and function exactly as in axes
-            tickmode: extendFlat({}, axesAttrs.tickmode, {
-                editType: 'plot'
-            }),
-            nticks: extendFlat({}, axesAttrs.nticks, {
-                editType: 'plot'
-            }),
-            tick0: extendFlat({}, axesAttrs.tick0, {
-                editType: 'plot'
-            }),
-            dtick: extendFlat({}, axesAttrs.dtick, {
-                editType: 'plot'
-            }),
-            tickvals: extendFlat({}, axesAttrs.tickvals, {
-                editType: 'plot'
-            }),
-            ticktext: extendFlat({}, axesAttrs.ticktext, {
-                editType: 'plot'
-            }),
+            tickmode: axesAttrs.tickmode,
+            nticks: axesAttrs.nticks,
+            tick0: axesAttrs.tick0,
+            dtick: axesAttrs.dtick,
+            tickvals: axesAttrs.tickvals,
+            ticktext: axesAttrs.ticktext,
             ticks: extendFlat({}, axesAttrs.ticks, {
-                dflt: 'outside',
-                editType: 'plot'
+                dflt: 'outside'
             }),
-            ticklen: extendFlat({}, axesAttrs.ticklen, {
-                editType: 'plot'
-            }),
-            tickwidth: extendFlat({}, axesAttrs.tickwidth, {
-                editType: 'plot'
-            }),
-            tickcolor: extendFlat({}, axesAttrs.tickcolor, {
-                editType: 'plot'
-            }),
-            showticklabels: extendFlat({}, axesAttrs.showticklabels, {
-                editType: 'plot'
-            }),
+            ticklen: axesAttrs.ticklen,
+            tickwidth: axesAttrs.tickwidth,
+            tickcolor: axesAttrs.tickcolor,
+            showticklabels: axesAttrs.showticklabels,
             tickfont: fontAttrs({
-                description: 'Sets the color bar\'s tick label font',
-                editType: 'plot'
+                description: 'Sets the color bar\'s tick label font'
             }),
-            tickangle: extendFlat({}, axesAttrs.tickangle, {
-                editType: 'plot'
-            }),
-            tickformat: extendFlat({}, axesAttrs.tickformat, {
-                editType: 'plot'
-            }),
-            tickformatstops: extendFlat({}, axesAttrs.tickformatstops, {
-                editType: 'plot'
-            }),
-            tickprefix: extendFlat({}, axesAttrs.tickprefix, {
-                editType: 'plot'
-            }),
-            showtickprefix: extendFlat({}, axesAttrs.showtickprefix, {
-                editType: 'plot'
-            }),
-            ticksuffix: extendFlat({}, axesAttrs.ticksuffix, {
-                editType: 'plot'
-            }),
-            showticksuffix: extendFlat({}, axesAttrs.showticksuffix, {
-                editType: 'plot'
-            }),
-            separatethousands: extendFlat({}, axesAttrs.separatethousands, {
-                editType: 'plot'
-            }),
-            exponentformat: extendFlat({}, axesAttrs.exponentformat, {
-                editType: 'plot'
-            }),
-            showexponent: extendFlat({}, axesAttrs.showexponent, {
-                editType: 'plot'
-            }),
+            tickangle: axesAttrs.tickangle,
+            tickformat: axesAttrs.tickformat,
+            tickformatstops: axesAttrs.tickformatstops,
+            tickprefix: axesAttrs.tickprefix,
+            showtickprefix: axesAttrs.showtickprefix,
+            ticksuffix: axesAttrs.ticksuffix,
+            showticksuffix: axesAttrs.showticksuffix,
+            separatethousands: axesAttrs.separatethousands,
+            exponentformat: axesAttrs.exponentformat,
+            showexponent: axesAttrs.showexponent,
             editType: 'plot'
         }, 'plot'),
         // Steps (or ranges) and thresholds
