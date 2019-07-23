@@ -50,14 +50,14 @@ module.exports = function(pathinfo, operation, perimeter, trace) {
         case '[]':
             v1 = Math.min.apply(null, contours.value);
             v2 = Math.max.apply(null, contours.value);
-            if(v2 < boundaryMin || v1 > boundaryMax) {
+            if(v2 <= boundaryMin || v1 >= boundaryMax) {
                 pi0.prefixBoundary = true;
             }
             break;
         case '][':
             v1 = Math.min.apply(null, contours.value);
             v2 = Math.max.apply(null, contours.value);
-            if(v1 < boundaryMin && v2 > boundaryMax) {
+            if(v1 <= boundaryMin && v2 >= boundaryMax) {
                 pi0.prefixBoundary = true;
             }
             break;
